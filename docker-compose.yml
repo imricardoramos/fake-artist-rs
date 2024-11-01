@@ -1,0 +1,8 @@
+services:
+  fake-artist:
+    ports:
+      - 4000:4000
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: fake-artist

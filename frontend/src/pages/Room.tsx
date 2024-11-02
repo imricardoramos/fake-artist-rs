@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef, KeyboardEvent, useCallback } from "react";
-import { socket } from "@/socket";
 import { Socket } from "socket.io-client";
 import short from "short-uuid";
 import { Player } from "@/types/Player";
@@ -16,12 +15,13 @@ import { v5 as uuidv5 } from "uuid";
 import { ChatMessage } from "@/types/ChatMessage";
 import { Curve } from "@/types/Curve";
 import { useParams } from "react-router-dom";
+import { SocketProvider } from "@/contexts/SocketContext";
+import { useSocket } from "@/hooks/useSocket";
 const translator = short();
 
 function Room() {
-  console.log("Room");
   const params = useParams<{ roomId: string }>();
-  const [_isConnected, setIsConnected] = useState(socket.connected);
+  const { socket, isConnected, connect, disconnect } = useSocket();
   const [currentPlayerId, setCurrentPlayerId] = useState<string>();
   const [gameState, setGameState] = useState<GameState>();
   function changeState(state: GameState) {
@@ -29,72 +29,79 @@ function Room() {
   }
 
   useEffect(() => {
-    function onConnect() {
-      console.log("onConnect");
-      const urlShortUuid = params.roomId;
-      if (urlShortUuid) {
-        const uuid = translator.toUUID(urlShortUuid);
-        socket.emitWithAck("join", uuid);
-      }
-      setIsConnected(true);
-    }
-
-    function onDisconnect() {
-      setIsConnected(false);
-    }
-    function onJoin(event: JoinEvent) {
-      if (event.current_player_id && event.game_state) {
-        setCurrentPlayerId(event.current_player_id);
-        setGameState(event.game_state);
-      }
-      if (gameState && event.players) {
-        setGameState({
-          ...gameState,
-          players: event.players,
-        });
-      }
-      if (gameState && gameState.state == "InGame" && event.spectators) {
-        setGameState({
-          ...gameState,
-          spectators: event.spectators,
-        });
-      }
-    }
-    socket.on("connect", onConnect);
-    socket.on("disconnect", onDisconnect);
-    socket.on("join", onJoin);
-    socket.on("start_game", changeState);
-
+    connect();
     return () => {
-      socket.off("connect", onConnect);
-      socket.off("disconnect", onDisconnect);
-      socket.off("join", onJoin);
-      socket.off("start_game", changeState);
+      disconnect(); // Disconnect when component unmounts
     };
-  }, [gameState, params.roomId]);
+  }, []);
 
-  console.log(gameState);
+  useEffect(() => {
+    if (socket && isConnected && !gameState && params.roomId) {
+      function join() {
+        const urlShortUuid = params.roomId;
+        if (urlShortUuid) {
+          const uuid = translator.toUUID(urlShortUuid);
+          socket?.emitWithAck("join", uuid);
+        }
+      }
+      function onJoin(event: JoinEvent) {
+        if (event.current_player_id && event.game_state) {
+          setCurrentPlayerId(event.current_player_id);
+          setGameState(event.game_state);
+        }
+        if (gameState && event.players) {
+          setGameState({
+            ...gameState,
+            players: event.players,
+          });
+        }
+        if (gameState && gameState.state == "InGame" && event.spectators) {
+          setGameState({
+            ...gameState,
+            spectators: event.spectators,
+          });
+        }
+      }
+
+      socket.on("join", onJoin);
+      socket.on("start_game", changeState);
+      join();
+
+      return () => {
+        socket.off("join", onJoin);
+        socket.off("start_game", changeState);
+      };
+    }
+  }, [socket, isConnected, gameState, params.roomId]);
 
   return (
-    <div>
-      <h1 className="text-center text-6xl text-white my-10 mx-2">
-        A Fake Artist goes to New York
-      </h1>
-      {gameState && gameState.state == "Lobby" ? (
-        <Lobby socket={socket} lobby={gameState} />
-      ) : gameState && gameState.state == "InGame" && currentPlayerId ? (
-        <Game
-          socket={socket}
-          initialState={gameState}
-          currentPlayerId={currentPlayerId}
-          onChangeState={changeState}
-        />
-      ) : gameState && gameState.state == "GameOver" && currentPlayerId ? (
-        <GameOver initialState={gameState} currentPlayerId={currentPlayerId} />
-      ) : (
-        <div></div>
-      )}
-    </div>
+    <SocketProvider>
+      <div>
+        <h1 className="text-center text-6xl text-white my-10 mx-2">
+          A Fake Artist goes to New York
+        </h1>
+        {socket && gameState && gameState.state == "Lobby" ? (
+          <Lobby socket={socket} lobby={gameState} />
+        ) : socket &&
+          gameState &&
+          gameState.state == "InGame" &&
+          currentPlayerId ? (
+          <Game
+            socket={socket}
+            initialState={gameState}
+            currentPlayerId={currentPlayerId}
+            onChangeState={changeState}
+          />
+        ) : gameState && gameState.state == "GameOver" && currentPlayerId ? (
+          <GameOver
+            initialState={gameState}
+            currentPlayerId={currentPlayerId}
+          />
+        ) : (
+          <div></div>
+        )}
+      </div>
+    </SocketProvider>
   );
 }
 
@@ -103,7 +110,6 @@ type LobbyParams = {
   lobby: { state: "Lobby" } & LobbyState;
 };
 function Lobby({ socket, lobby }: LobbyParams) {
-  const params = useParams<{ roomId: string }>();
   function startGame() {
     socket.emit("start_game", {});
   }
@@ -114,7 +120,7 @@ function Lobby({ socket, lobby }: LobbyParams) {
     <div className="m-2">
       <div className="text-center mx-auto max-w-screen-sm bg-white rounded-xl p-5 mb-5">
         <p>Share this link to let other players join:</p>
-        <p>{params.roomId}</p>
+        <p>{window.location.href}</p>
       </div>
       <div className="mx-auto max-w-screen-sm bg-white rounded-xl p-10">
         <input

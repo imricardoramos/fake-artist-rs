@@ -1,6 +1,7 @@
 import HomePage from "@/pages/Homepage";
 import { RouteRecord } from "vite-react-ssg/single-page";
 import ErrorPage from "./pages/ErrorPage";
+import Room from "@/pages/Room.tsx";
 
 export const routes: RouteRecord[] = [
   {
@@ -11,11 +12,8 @@ export const routes: RouteRecord[] = [
   },
   {
     path: "/room/:roomId",
+    element: <Room />,
     entry: "@/pages/Room.tsx",
-    lazy: async () => {
-      const Room = await import("@/pages/Room.tsx");
-      return { Component: Room.default };
-    },
     getStaticPaths: () => ["/room/index"],
   },
 ];

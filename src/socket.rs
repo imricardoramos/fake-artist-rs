@@ -6,6 +6,7 @@ use socketioxide::{
     extract::{Data, SocketRef},
     SocketIo,
 };
+use tracing::info;
 use ts_rs::TS;
 use uuid::Uuid;
 
@@ -230,7 +231,6 @@ pub fn setup_socket(socket: SocketRef) {
             let Some(player) = socket.extensions.get::<Player>() else {
                 return;
             };
-            dbg!(&player);
             let _ = cast!(game_server, Message::Chat(player.clone(), msg.clone()));
             io.to(game_server.get_name().unwrap())
                 .emit("chat_msg", ChatMessage::new(player, &msg))
@@ -238,14 +238,14 @@ pub fn setup_socket(socket: SocketRef) {
         },
     );
     socket.on_disconnect(|socket: SocketRef| async move {
+        info!("Socket disconnected: {}", socket.id);
         let Some(game_server) = socket.extensions.get::<ActorRef<Message>>() else {
             return;
         };
         let Some(player) = socket.extensions.get::<Player>() else {
             return;
         };
-        let game = call!(game_server, Message::Leave, player.clone()).unwrap();
-        dbg!(game);
+        let _ = call!(game_server, Message::Leave, player.clone()).unwrap();
         socket
             .to(game_server.get_name().unwrap())
             .emit("leave", player)

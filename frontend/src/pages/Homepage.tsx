@@ -1,7 +1,6 @@
 import { Link } from "react-router-dom";
 import short from "short-uuid";
 export default function HomePage() {
-  console.log("HomePage");
   return (
     <div className="text-lg">
       <h1 className="text-center text-6xl text-white my-10">
@@ -60,14 +59,16 @@ export default function HomePage() {
           If you're still unsure on how to play, here's a fun video of people
           playing it:
         </p>
-        <iframe
-          width="100%"
-          height="315"
-          src="https://www.youtube.com/embed/k2z8l9k38mk"
-          frameBorder="0"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-        ></iframe>
+        {import.meta.env.PROD && (
+          <iframe
+            width="100%"
+            height="315"
+            src="https://www.youtube.com/embed/k2z8l9k38mk"
+            frameBorder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          ></iframe>
+        )}
       </div>
     </div>
   );

@@ -36,10 +36,10 @@ function Room() {
   }, []);
 
   useEffect(() => {
-    if (socket && isConnected && !gameState && params.roomId) {
+    if (socket && isConnected && params.roomId) {
       function join() {
         const urlShortUuid = params.roomId;
-        if (urlShortUuid) {
+        if (urlShortUuid && !currentPlayerId) {
           const uuid = translator.toUUID(urlShortUuid);
           socket?.emitWithAck("join", uuid);
         }
@@ -72,7 +72,7 @@ function Room() {
         socket.off("start_game", changeState);
       };
     }
-  }, [socket, isConnected, gameState, params.roomId]);
+  }, [socket, isConnected, gameState, params.roomId, currentPlayerId]);
 
   return (
     <SocketProvider>

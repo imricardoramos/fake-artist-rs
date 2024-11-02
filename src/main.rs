@@ -1,8 +1,12 @@
+use axum::http::{header::CONTENT_SECURITY_POLICY, HeaderValue};
 use socket::setup_socket;
 use socketioxide::{extract::SocketRef, SocketIo};
 use std::error::Error;
 use tokio::signal::unix::{signal, SignalKind};
-use tower_http::services::{ServeDir, ServeFile};
+use tower_http::{
+    services::{ServeDir, ServeFile},
+    set_header::SetResponseHeaderLayer,
+};
 use tracing::info;
 
 mod game;
@@ -38,7 +42,13 @@ fn start_endpoint() {
         let app = axum::Router::new()
             .route_service("/room/:room_id", ServeFile::new("frontend/dist/index.html"))
             .nest_service("/", ServeDir::new("frontend/dist"))
-            .layer(layer);
+            .layer(layer)
+            .layer(SetResponseHeaderLayer::overriding(
+                CONTENT_SECURITY_POLICY,
+                HeaderValue::from_static(
+                    "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; frame-src www.youtube.com",
+                ),
+            ));
         let listener = tokio::net::TcpListener::bind("0.0.0.0:4000").await.unwrap();
         info!("Listening on 0.0.0.0:4000");
         axum::serve(listener, app).await.unwrap();

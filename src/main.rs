@@ -46,7 +46,7 @@ fn start_endpoint() {
             .layer(SetResponseHeaderLayer::overriding(
                 CONTENT_SECURITY_POLICY,
                 HeaderValue::from_static(
-                    "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; frame-src www.youtube.com",
+                    "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; frame-src www.youtube.com; script-src 'self' *.posthog.com; connect-src 'self' *.posthog.com",
                 ),
             ));
         let listener = tokio::net::TcpListener::bind("0.0.0.0:4000").await.unwrap();

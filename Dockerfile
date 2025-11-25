@@ -11,6 +11,8 @@ ARG APP_NAME=fake-artist
 
 ################################################################################
 FROM node:slim AS frontend-build
+ENV VITE_PUBLIC_POSTHOG_KEY=phc_ki54pt3ZgV3rnjUzBvOV7zO9r7eTb3N3nKP4NtKyaYw
+ENV VITE_PUBLIC_POSTHOG_HOST=https://fake-artist.ricardoramos.me/e
 WORKDIR /app
 COPY ./frontend .
 RUN npm install
@@ -35,13 +37,13 @@ RUN apk add --no-cache clang lld musl-dev git libressl-dev
 # source code into the container. Once built, copy the executable to an
 # output directory before the cache mounted /app/target is unmounted.
 RUN --mount=type=bind,source=src,target=src \
-    --mount=type=bind,source=Cargo.toml,target=Cargo.toml \
-    --mount=type=bind,source=Cargo.lock,target=Cargo.lock \
-    --mount=type=cache,target=/app/target/ \
-    --mount=type=cache,target=/usr/local/cargo/git/db \
-    --mount=type=cache,target=/usr/local/cargo/registry/ \
-    cargo build --locked --release && \
-    cp ./target/release/$APP_NAME /bin/server
+  --mount=type=bind,source=Cargo.toml,target=Cargo.toml \
+  --mount=type=bind,source=Cargo.lock,target=Cargo.lock \
+  --mount=type=cache,target=/app/target/ \
+  --mount=type=cache,target=/usr/local/cargo/git/db \
+  --mount=type=cache,target=/usr/local/cargo/registry/ \
+  cargo build --locked --release && \
+  cp ./target/release/$APP_NAME /bin/server
 
 ################################################################################
 # Create a new stage for running the application that contains the minimal
@@ -60,13 +62,13 @@ WORKDIR /app
 # See https://docs.docker.com/go/dockerfile-user-best-practices/
 ARG UID=10001
 RUN adduser \
-    --disabled-password \
-    --gecos "" \
-    --home "/nonexistent" \
-    --shell "/sbin/nologin" \
-    --no-create-home \
-    --uid "${UID}" \
-    appuser
+  --disabled-password \
+  --gecos "" \
+  --home "/nonexistent" \
+  --shell "/sbin/nologin" \
+  --no-create-home \
+  --uid "${UID}" \
+  appuser
 USER appuser
 
 # Copy the executable from the "build" stage.
